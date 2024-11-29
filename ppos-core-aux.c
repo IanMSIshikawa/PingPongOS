@@ -141,6 +141,13 @@ int after_task_join (task_t *task) {
     return 0;
 }
 
+int sem_init(semaphore_t *s, int value){
+    s->active = 1;
+    s->count = value;
+    s->queue = NULL;
+    s->queue->next = NULL;
+    s->queue->prev = NULL;
+}
 
 int before_sem_create (semaphore_t *s, int value) {
     // put your customization here
