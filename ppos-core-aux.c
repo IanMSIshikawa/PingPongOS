@@ -141,12 +141,10 @@ int after_task_join (task_t *task) {
     return 0;
 }
 
-int sem_init(semaphore_t *s, int value){
+int sem_create(semaphore_t *s, int value){
     s->active = 1;
     s->count = value;
     s->queue = NULL;
-    s->queue->next = NULL;
-    s->queue->prev = NULL;
 }
 
 int before_sem_create (semaphore_t *s, int value) {
@@ -162,6 +160,14 @@ int after_sem_create (semaphore_t *s, int value) {
 #ifdef DEBUG
     printf("\nsem_create - AFTER - [%d]", taskExec->id);
 #endif
+    return 0;
+}
+
+int sem_down (semaphore_t *s) {
+    return 0;
+}
+
+int sem_up (semaphore_t *s) {
     return 0;
 }
 
@@ -194,6 +200,10 @@ int after_sem_up (semaphore_t *s) {
 #ifdef DEBUG
     printf("\nsem_up - AFTER - [%d]", taskExec->id);
 #endif
+    return 0;
+}
+
+int sem_destroy (semaphore_t *s) {
     return 0;
 }
 
