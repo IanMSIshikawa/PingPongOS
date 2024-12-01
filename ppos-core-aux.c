@@ -145,6 +145,8 @@ int sem_create(semaphore_t *s, int value){
     s->active = 1;
     s->count = value;
     s->queue = NULL;
+
+    return 0;
 }
 
 int before_sem_create (semaphore_t *s, int value) {
@@ -204,6 +206,15 @@ int after_sem_up (semaphore_t *s) {
 }
 
 int sem_destroy (semaphore_t *s) {
+
+    s->active = 0;
+    struct task_t *task;
+    task = s->queue;
+    while ( task ) {
+        task->state = 'R';
+        task = task->next;
+    }
+    
     return 0;
 }
 
