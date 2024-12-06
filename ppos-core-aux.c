@@ -158,7 +158,7 @@ int before_sem_create (semaphore_t *s, int value) {
 }
 
 int after_sem_create (semaphore_t *s, int value) {
-    // put your customization here
+
 #ifdef DEBUG
     printf("\nsem_create - AFTER - [%d]", taskExec->id);
 #endif
@@ -166,7 +166,12 @@ int after_sem_create (semaphore_t *s, int value) {
 }
 
 int sem_down (semaphore_t *s) {
-    return 0;
+    if (!s || s->active == 0 ){
+        return -1;
+    } else {
+        
+        return 0;
+    }
 }
 
 int sem_up (semaphore_t *s) {
@@ -207,12 +212,20 @@ int after_sem_up (semaphore_t *s) {
 
 int sem_destroy (semaphore_t *s) {
 
-    s->active = 0;
     struct task_t *task;
     task = s->queue;
-    while ( task ) {
-        task->state = 'R';
-        task = task->next;
+    s->active = 0;
+    if (task){
+        while ( task ) {
+            task->state = 'R';
+            task = task->next;
+            printf("state: %d", task->state);
+            
+        }
+    }
+    else{
+        printf("tarefa nula");
+
     }
     
     return 0;
