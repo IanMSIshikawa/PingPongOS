@@ -25,14 +25,12 @@ void after_ppos_init () {
 }
 
 void before_task_create (task_t *task ) {
-    // put your customization here
 #ifdef DEBUG
     printf("\ntask_create - BEFORE - [%d]", task->id);
 #endif
 }
 
 void after_task_create (task_t *task ) {
-    // put your customization here
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
@@ -144,7 +142,7 @@ int after_task_join (task_t *task) {
 int sem_create(semaphore_t *s, int value){
     s->active = 1;
     s->count = value;
-    s->queue = NULL;
+    s->queue =  NULL;
 
     return 0;
 }
@@ -158,7 +156,7 @@ int before_sem_create (semaphore_t *s, int value) {
 }
 
 int after_sem_create (semaphore_t *s, int value) {
-
+    
 #ifdef DEBUG
     printf("\nsem_create - AFTER - [%d]", taskExec->id);
 #endif
@@ -166,20 +164,43 @@ int after_sem_create (semaphore_t *s, int value) {
 }
 
 int sem_down (semaphore_t *s) {
+
     if (!s || s->active == 0 ){
         return -1;
     } else {
-        
+        s->count -=1;
+        if(s->count < 0){
+            taskExec->state = 'S';
+            queue_append((queue_t**)&s->queue, (queue_t*)taskExec);
+            queue_print ("S Queue", (queue_t*)s->queue, (void*)&print_tcb );
+        }
         return 0;
     }
 }
 
 int sem_up (semaphore_t *s) {
+    if (!s || s->active == 0 ){
+        return -1;
+    } else {
+        s->count +=1;
+        if (s->count >= 0){
+            queue_t* wakeup = (queue_t*)s->queue;
+            // s->queue->next->state = 'R';
+            // queue_remove((queue_t**)&s->queue, (queue_t*)wakeup);
+            // queue_remove((queue_t**)&sleepQueue, (queue_t*)wakeup);
+            // queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);
+
+
+
+        }
+    }
     return 0;
 }
 
 int before_sem_down (semaphore_t *s) {
-    // put your customization here
+    
+
+
 #ifdef DEBUG
     printf("\nsem_down - BEFORE - [%d]", taskExec->id);
 #endif
@@ -187,7 +208,9 @@ int before_sem_down (semaphore_t *s) {
 }
 
 int after_sem_down (semaphore_t *s) {
-    // put your customization here
+    
+
+    
 #ifdef DEBUG
     printf("\nsem_down - AFTER - [%d]", taskExec->id);
 #endif
@@ -203,7 +226,7 @@ int before_sem_up (semaphore_t *s) {
 }
 
 int after_sem_up (semaphore_t *s) {
-    // put your customization here
+    
 #ifdef DEBUG
     printf("\nsem_up - AFTER - [%d]", taskExec->id);
 #endif
@@ -219,12 +242,10 @@ int sem_destroy (semaphore_t *s) {
         while ( task ) {
             task->state = 'R';
             task = task->next;
-            printf("state: %d", task->state);
             
         }
     }
     else{
-        printf("tarefa nula");
 
     }
     
