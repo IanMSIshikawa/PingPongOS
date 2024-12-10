@@ -37,6 +37,7 @@ typedef struct {
     struct task_t *queue;
     int count;
     int active;
+    volatile int lock;  // Lock for mutual exclusion
 
 } semaphore_t ;
 
