@@ -171,8 +171,7 @@ int sem_down (semaphore_t *s) {
         s->count -=1;
         if(s->count < 0){
             taskExec->state = 'S';
-            queue_append((queue_t**)&s->queue, (queue_t*)taskExec);
-            queue_print ("S Queue", (queue_t*)s->queue, (void*)&print_tcb );
+            task_suspend( taskExec, &s->queue );
         }
         return 0;
     }
@@ -184,23 +183,26 @@ int sem_up (semaphore_t *s) {
     } else {
         s->count +=1;
         if (s->count >= 0){
-            queue_t* wakeup = (queue_t*)s->queue;
-            // s->queue->next->state = 'R';
-            // queue_remove((queue_t**)&s->queue, (queue_t*)wakeup);
-            // queue_remove((queue_t**)&sleepQueue, (queue_t*)wakeup);
-            // queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);
+            print_tcb(s->queue);
+            queue_print ("\nS Queue before", (queue_t*)s->queue, (void*)&print_tcb );
+            queue_print ("\nReady Queue before", (queue_t*)readyQueue, (void*)&print_tcb );
+            
+            task_t* wakeup = s->queue;
+            // wakeup->state = 'R';
 
+            queue_remove((queue_t**)s->queue, (queue_t*)wakeup);
+            queue_append((queue_t**)readyQueue, (queue_t*)wakeup);
 
+            queue_print ("\nS Queue after", (queue_t*)s->queue, (void*)&print_tcb );
+            queue_print ("\nReady Queue after", (queue_t*)readyQueue, (void*)&print_tcb );
 
+            
         }
     }
     return 0;
 }
 
 int before_sem_down (semaphore_t *s) {
-    
-
-
 #ifdef DEBUG
     printf("\nsem_down - BEFORE - [%d]", taskExec->id);
 #endif
@@ -208,9 +210,6 @@ int before_sem_down (semaphore_t *s) {
 }
 
 int after_sem_down (semaphore_t *s) {
-    
-
-    
 #ifdef DEBUG
     printf("\nsem_down - AFTER - [%d]", taskExec->id);
 #endif
@@ -242,6 +241,7 @@ int sem_destroy (semaphore_t *s) {
         while ( task ) {
             task->state = 'R';
             task = task->next;
+            print_tcb(task);
             
         }
     }
