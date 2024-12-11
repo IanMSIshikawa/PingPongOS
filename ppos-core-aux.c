@@ -163,6 +163,20 @@ int after_sem_create (semaphore_t *s, int value) {
     return 0;
 }
 
+int test_and_set (volatile int *lock)
+{
+    int old_lock = *lock;
+    *lock = 1; //Gets lock
+    
+    return old_lock; //Returns 0 (free) or 1 (locked)
+}
+
+void release_lock(volatile int *lock)
+{
+    *lock = 0; //Releasing lock
+}
+
+
 int sem_down (semaphore_t *s) {
 
     if (!s || s->active == 0 ){
@@ -171,7 +185,7 @@ int sem_down (semaphore_t *s) {
     }
 
     //Adquires Lock (Look into struct)
-    while(__sync_lock_test_and_set(&(s->lock),1))
+    while(test_and_set(&(s->lock)))
     {
         //Wait for the lock to be "lifted"
         //Yield CPU?
@@ -184,7 +198,7 @@ int sem_down (semaphore_t *s) {
     }
 
     
-    __sync_lock_release(&(s->lock)); //Releasing lock
+    release_lock(&(s->lock)); //Releasing lock
 
     return 0;
 }
@@ -195,7 +209,7 @@ int sem_up (semaphore_t *s) {
     } 
 
     //Adquires Lock (Look into struct)
-    while(__sync_lock_test_and_set(&(s->lock),1))
+    while(test_and_set(&(s->lock)))
     {
         //Wait for the lock to be "lifted"
         //Yield CPU?
@@ -220,7 +234,7 @@ int sem_up (semaphore_t *s) {
         
     }
 
-    __sync_lock_release(&(s->lock)); //Releasing lock
+    release_lock(&(s->lock)); //Releasing lock
     
     return 0;
 }
