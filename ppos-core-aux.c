@@ -192,7 +192,7 @@ int sem_down (semaphore_t *s) {
     }
     
     s->count -=1;
-    if(s->count < 0 && queue_size((queue_t*)readyQueue) > 0){
+    if(s->count < 0 ){
         //Suspend running task
         taskExec->state = 'S';
         task_suspend( taskExec, &s->queue );
@@ -225,19 +225,13 @@ int sem_up (semaphore_t *s) {
     s->count +=1;
 
     if (s->count <= 0){
-        queue_print ("\nS Queue before", (queue_t*)s->queue, (void*)&print_tcb );
-        queue_print ("\nReady Queue before", (queue_t*)readyQueue, (void*)&print_tcb );
         
         task_t* wakeup = s->queue;
-        // wakeup->state = 'R';
+        wakeup->state = 'R';
 
-        queue_remove((queue_t**)s->queue, (queue_t*)wakeup);
-        queue_append((queue_t**)readyQueue, (queue_t*)wakeup);
+        queue_remove((queue_t**)&s->queue, (queue_t*)wakeup);
+        queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);
 
-        queue_print ("\nS Queue after", (queue_t*)s->queue, (void*)&print_tcb );
-        queue_print ("\nReady Queue after", (queue_t*)readyQueue, (void*)&print_tcb );
-
-        
     }
 
     release_lock(&(s->lock)); //Releasing lock
