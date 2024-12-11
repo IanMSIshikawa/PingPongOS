@@ -217,8 +217,7 @@ int sem_up (semaphore_t *s) {
 
     s->count +=1;
 
-    if (s->count >= 0){
-        print_tcb(s->queue);
+    if (s->count <= 0){
         queue_print ("\nS Queue before", (queue_t*)s->queue, (void*)&print_tcb );
         queue_print ("\nReady Queue before", (queue_t*)readyQueue, (void*)&print_tcb );
         
