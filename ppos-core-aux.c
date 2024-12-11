@@ -190,6 +190,7 @@ int sem_down (semaphore_t *s) {
         //Wait for the lock to be "lifted"
         //Yield CPU?
     }
+
     
     s->count -=1;
     if(s->count < 0){
@@ -217,21 +218,12 @@ int sem_up (semaphore_t *s) {
 
     s->count +=1;
 
-    if (s->count >= 0){
-        print_tcb(s->queue);
-        queue_print ("\nS Queue before", (queue_t*)s->queue, (void*)&print_tcb );
-        queue_print ("\nReady Queue before", (queue_t*)readyQueue, (void*)&print_tcb );
+    if (s->count <= 0){
         
         task_t* wakeup = s->queue;
-        // wakeup->state = 'R';
-
-        queue_remove((queue_t**)s->queue, (queue_t*)wakeup);
-        queue_append((queue_t**)readyQueue, (queue_t*)wakeup);
-
-        queue_print ("\nS Queue after", (queue_t*)s->queue, (void*)&print_tcb );
-        queue_print ("\nReady Queue after", (queue_t*)readyQueue, (void*)&print_tcb );
-
-        
+        wakeup->state = 'R';
+        queue_remove((queue_t**)&s->queue, (queue_t*)wakeup);
+        queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);        
     }
 
     release_lock(&(s->lock)); //Releasing lock
