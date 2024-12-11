@@ -192,9 +192,16 @@ int sem_down (semaphore_t *s) {
     }
     
     s->count -=1;
-    if(s->count < 0){
+    if(s->count < 0 && queue_size((queue_t*)readyQueue) > 0){
+        //Suspend running task
         taskExec->state = 'S';
         task_suspend( taskExec, &s->queue );
+
+        //Execute new task
+        task_t* newTask = readyQueue;
+        newTask->state = 'E';
+        queue_remove((queue_t**)&readyQueue, (queue_t*)newTask);
+        taskExec = newTask;
     }
 
     
