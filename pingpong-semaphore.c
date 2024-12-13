@@ -17,11 +17,13 @@ void TaskA (void * arg)
       printf("\ns->count BEFORE: %d\n",s1.count );
       queue_print ("Semaphore Queue BEFORE", (queue_t*)s1.queue, (void*)&print_tcb );
       queue_print ("Ready Queue BEFPRE", (queue_t*)readyQueue, (void*)&print_tcb );
+
       sem_down(&s1) ;
-      print_tcb(taskExec);
+
       printf("\ns->count AFTER: %d\n",s1.count );
       queue_print ("Semaphore Queue AFTER", (queue_t*)s1.queue, (void*)&print_tcb );
       queue_print ("Ready Queue AFTER", (queue_t*)readyQueue, (void*)&print_tcb );
+      print_tcb(taskExec);
 
 
       printf ("\n[%06d] %s zig (%d)", systime(), (char *) arg, i) ; fflush(stdout);
@@ -48,10 +50,10 @@ void TaskB (void * arg)
       
       sem_up (&s1) ;
       
-      print_tcb(taskExec);
       printf("\ns->count AFTER: %d\n",s1.count );
       queue_print ("Semaphore Queue AFTER", (queue_t*)s1.queue, (void*)&print_tcb );
       queue_print ("Ready Queue AFTER", (queue_t*)readyQueue, (void*)&print_tcb );
+      print_tcb(taskExec);
 
       task_yield();
    }

@@ -100,6 +100,8 @@ void before_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - BEFORE - [%d]", task->id);
 #endif
+    // printf("before taskResume");
+    // print_tcb(taskExec);
 }
 
 void after_task_resume(task_t *task) {
@@ -107,6 +109,9 @@ void after_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif
+    // printf("after taskResume");
+    // print_tcb(taskExec);
+
 }
 
 void before_task_sleep () {
@@ -165,6 +170,7 @@ int after_sem_create (semaphore_t *s, int value) {
 
 int test_and_set (volatile int *lock)
 {
+    // printf("esperando.....");
     int old_lock = *lock;
     *lock = 1; //Gets lock
     
@@ -173,6 +179,7 @@ int test_and_set (volatile int *lock)
 
 void release_lock(volatile int *lock)
 {
+    // printf("liberado.....");
     *lock = 0; //Releasing lock
 }
 
@@ -189,8 +196,9 @@ int sem_down (semaphore_t *s) {
     {
         //Wait for the lock to be "lifted"
         //Yield CPU?
+        task_yield();
     }
-    
+    PPOS_PREEMPT_DISABLE
     s->count -=1;
     if(s->count < 0 ){
         //Suspend running task
@@ -201,9 +209,9 @@ int sem_down (semaphore_t *s) {
         task_t* newTask = readyQueue;
         newTask->state = 'E';
         queue_remove((queue_t**)&readyQueue, (queue_t*)newTask);
-        taskExec = newTask;
+        task_resume(newTask);
     }
-
+    PPOS_PREEMPT_ENABLE
     
     release_lock(&(s->lock)); //Releasing lock
 
@@ -221,7 +229,7 @@ int sem_up (semaphore_t *s) {
         //Wait for the lock to be "lifted"
         //Yield CPU?
     }
-
+    PPOS_PREEMPT_DISABLE
     s->count +=1;
 
     if (s->count <= 0){
@@ -233,7 +241,7 @@ int sem_up (semaphore_t *s) {
         queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);
 
     }
-
+    PPOS_PREEMPT_ENABLE
     release_lock(&(s->lock)); //Releasing lock
     
     return 0;
@@ -257,7 +265,7 @@ int before_sem_up (semaphore_t *s) {
     // put your customization here
 #ifdef DEBUG
     printf("\nsem_up - BEFORE - [%d]", taskExec->id);
-#endif
+#endif 
     return 0;
 }
 
