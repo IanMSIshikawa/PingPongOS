@@ -100,6 +100,8 @@ void before_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - BEFORE - [%d]", task->id);
 #endif
+    // printf("before taskResume");
+    // print_tcb(taskExec);
 }
 
 void after_task_resume(task_t *task) {
@@ -107,6 +109,9 @@ void after_task_resume(task_t *task) {
 #ifdef DEBUG
     printf("\ntask_resume - AFTER - [%d]", task->id);
 #endif
+    // printf("after taskResume");
+    // print_tcb(taskExec);
+
 }
 
 void before_task_sleep () {
@@ -139,13 +144,6 @@ int after_task_join (task_t *task) {
     return 0;
 }
 
-int sem_create(semaphore_t *s, int value){
-    s->active = 1;
-    s->count = value;
-    s->queue =  NULL;
-
-    return 0;
-}
 
 int before_sem_create (semaphore_t *s, int value) {
     // put your customization here
@@ -176,6 +174,31 @@ void release_lock(volatile int *lock)
     *lock = 0; //Releasing lock
 }
 
+int sem_destroy (semaphore_t *s) {
+
+    if(s == NULL || s->active == 0){return -1;}
+    struct task_t *task;
+    task = s->queue;
+    s->active = 0;
+    if (task){
+        while ( task ) {
+            task_resume(task);
+        }
+    }
+    else{
+
+    }
+    
+    return 0;
+}
+
+int sem_create(semaphore_t *s, int value){
+    s->active = 1;
+    s->count = value;
+    s->queue =  NULL;
+
+    return 0;
+}
 
 int sem_down (semaphore_t *s) {
 
@@ -184,53 +207,45 @@ int sem_down (semaphore_t *s) {
 
     }
 
-    //Adquires Lock (Look into struct)
-    while(test_and_set(&(s->lock)))
-    {
-        //Wait for the lock to be "lifted"
-        //Yield CPU?
-    }
-
-    
+    PPOS_PREEMPT_DISABLE
     s->count -=1;
-    if(s->count < 0){
-        taskExec->state = 'S';
+    if(s->count < 0 ){
+        //Suspend running task
         task_suspend( taskExec, &s->queue );
-    }
 
-    
-    release_lock(&(s->lock)); //Releasing lock
+        //Execute new task
+        PPOS_PREEMPT_ENABLE
+        task_yield();
+        
+    }
+    PPOS_PREEMPT_ENABLE
 
     return 0;
 }
 
 int sem_up (semaphore_t *s) {
+    PPOS_PREEMPT_DISABLE
     if (!s || s->active == 0 ){
         return -1;
     } 
 
-    //Adquires Lock (Look into struct)
-    while(test_and_set(&(s->lock)))
-    {
-        //Wait for the lock to be "lifted"
-        //Yield CPU?
-    }
-
     s->count +=1;
 
     if (s->count <= 0){
-        
-        task_t* wakeup = s->queue;
-        wakeup->state = 'R';
-        queue_remove((queue_t**)&s->queue, (queue_t*)wakeup);
-        queue_append((queue_t**)&readyQueue, (queue_t*)wakeup);        
+        task_resume(s->queue);
     }
 
-    release_lock(&(s->lock)); //Releasing lock
+    PPOS_PREEMPT_ENABLE
     
     return 0;
 }
 
+int mutex_create (mutex_t *m){
+
+}
+int mutex_lock (mutex_t *m){
+    
+}
 int before_sem_down (semaphore_t *s) {
 #ifdef DEBUG
     printf("\nsem_down - BEFORE - [%d]", taskExec->id);
@@ -249,7 +264,7 @@ int before_sem_up (semaphore_t *s) {
     // put your customization here
 #ifdef DEBUG
     printf("\nsem_up - BEFORE - [%d]", taskExec->id);
-#endif
+#endif 
     return 0;
 }
 

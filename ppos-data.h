@@ -43,7 +43,7 @@ typedef struct {
 
 // estrutura que define um mutex
 typedef struct {
-    
+    int lock;
 } mutex_t ;
 
 // estrutura que define uma barreira
