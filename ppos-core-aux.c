@@ -161,18 +161,50 @@ int after_sem_create (semaphore_t *s, int value) {
     return 0;
 }
 
-int test_and_set (volatile int *lock)
+
+int mutex_create (mutex_t *m)
 {
-    int old_lock = *lock;
-    *lock = 1; //Gets lock
+    if (!m)
+        return -1; //Failed
     
-    return old_lock; //Returns 0 (free) or 1 (locked)
+    m->lock = 0;
+    return 0;
+
 }
 
-void release_lock(volatile int *lock)
+
+int mutex_lock (mutex_t *m)
 {
-    *lock = 0; //Releasing lock
+    if (!m)
+        return -1; //Failed
+
+    while (__atomic_test_and_set(&(m->lock), __ATOMIC_SEQ_CST)) 
+        task_yield();
+
+    return 0;
+    
 }
+
+
+int mutex_unlock(mutex_t *m)
+{
+    if (!m)
+        return -1;
+
+    m->lock=0;
+    return 0;
+}
+
+int mutex_destroy(mutex_t *m)
+{
+    if (!m)
+        return -1;
+    
+    m->lock = -1; //marked as destroyed/inactive
+
+    return 0;
+}
+
 
 int sem_destroy (semaphore_t *s) {
 
@@ -181,6 +213,9 @@ int sem_destroy (semaphore_t *s) {
     }
     
     s->active = 0; //inactive
+    
+    mutex_destroy(&s->mutex);
+
 
     while (s->queue) //Checks if queue is Null
     { 
@@ -191,36 +226,47 @@ int sem_destroy (semaphore_t *s) {
         queue_append((queue_t **)&readyQueue, (queue_t *)wakeup);
     }
 
+    
+
     return 0;
 }
 
-int sem_create(semaphore_t *s, int value){
+int sem_create(semaphore_t *s, int value)
+{
     s->active = 1;
     s->count = value;
     s->queue =  NULL;
+
+    if (mutex_create(&s->mutex))
+        return -1;
 
     return 0;
 }
 
 int sem_down (semaphore_t *s) {
-
+    PPOS_PREEMPT_DISABLE
     if (!s || s->active == 0 ){
         return -1;
 
-    }
+    } 
 
-    PPOS_PREEMPT_DISABLE
+    mutex_lock(&s->mutex);
+
     s->count -=1;
     if(s->count < 0 ){
         //Suspend running task
         task_suspend( taskExec, &s->queue );
 
+        mutex_unlock(&s->mutex);
         //Execute new task
         PPOS_PREEMPT_ENABLE
         task_yield();
         
     }
+    
     PPOS_PREEMPT_ENABLE
+
+    mutex_unlock(&s->mutex);
 
     return 0;
 }
@@ -231,6 +277,8 @@ int sem_up (semaphore_t *s) {
         return -1;
     } 
 
+    mutex_lock(&s->mutex);
+
     s->count +=1;
 
     if (s->count <= 0){
@@ -239,15 +287,12 @@ int sem_up (semaphore_t *s) {
 
     PPOS_PREEMPT_ENABLE
     
+    mutex_unlock(&s->mutex);
     return 0;
 }
 
-int mutex_create (mutex_t *m){
 
-}
-int mutex_lock (mutex_t *m){
-    
-}
+
 int before_sem_down (semaphore_t *s) {
 #ifdef DEBUG
     printf("\nsem_down - BEFORE - [%d]", taskExec->id);
