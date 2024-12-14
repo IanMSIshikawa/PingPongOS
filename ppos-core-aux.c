@@ -176,19 +176,21 @@ void release_lock(volatile int *lock)
 
 int sem_destroy (semaphore_t *s) {
 
-    if(s == NULL || s->active == 0){return -1;}
-    struct task_t *task;
-    task = s->queue;
-    s->active = 0;
-    if (task){
-        while ( task ) {
-            task_resume(task);
-        }
-    }
-    else{
-
+    if (!s || s->active == 0) {
+        return -1; // null or already inactive
     }
     
+    s->active = 0; //inactive
+
+    while (s->queue) //Checks if queue is Null
+    { 
+        task_t *wakeup = (task_t *)s->queue;
+     
+        queue_remove((queue_t **)&(s->queue), (queue_t *)wakeup); //removing tasks
+
+        queue_append((queue_t **)&readyQueue, (queue_t *)wakeup);
+    }
+
     return 0;
 }
 
@@ -276,36 +278,6 @@ int after_sem_up (semaphore_t *s) {
     return 0;
 }
 
-int sem_destroy (semaphore_t *s) {
-
-    if (!s || s->active == 0) {
-        return -1; // null or already inactive
-    }
-
-    while(test_and_set(&(s->lock)))
-    {
-        //Yield CPU?
-    }
-
-    
-    s->active = 0; //inactive
-
-    while (s->queue) //Checks if queue is Null
-    { 
-        task_t *wakeup = (task_t *)s->queue;
-
-        
-        queue_remove((queue_t **)&(s->queue), (queue_t *)wakeup); //removing tasks
-
-        
-        wakeup->state = 'R'; // setting as Ready
-        queue_append((queue_t **)&readyQueue, (queue_t *)wakeup);
-    }
-    
-    release_lock(&(s->lock));
-
-    return 0;
-}
 
 int before_sem_destroy (semaphore_t *s) {
     // put your customization here
