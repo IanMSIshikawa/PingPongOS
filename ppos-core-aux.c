@@ -68,13 +68,13 @@ void after_task_switch ( task_t *task ) {
 }
 
 void before_task_yield () {
-    // put your customization here
+
 #ifdef DEBUG
     printf("\ntask_yield - BEFORE - [%d]", taskExec->id);
 #endif
 }
 void after_task_yield () {
-    // put your customization here
+
 #ifdef DEBUG
     printf("\ntask_yield - AFTER - [%d]", taskExec->id);
 #endif
@@ -188,7 +188,7 @@ int sem_destroy (semaphore_t *s) {
      
         queue_remove((queue_t **)&(s->queue), (queue_t *)wakeup); //removing tasks
 
-        queue_append((queue_t **)&readyQueue, (queue_t *)wakeup);
+        queue_append((queue_t **)&readyQueue, (queue_t *)wakeup); //adding in ready queue
     }
 
     return 0;
@@ -212,13 +212,13 @@ int sem_down (semaphore_t *s) {
     PPOS_PREEMPT_DISABLE
     s->count -=1;
     if(s->count < 0 ){
-        //Suspend running task
-        task_suspend( taskExec, &s->queue );
+        //Suspend running task 
+        task_suspend( taskExec, &s->queue );//suspend executing task and insert in semaphore queue
 
         //Execute new task
         PPOS_PREEMPT_ENABLE
-        task_yield();
-        
+        task_yield(); //free processor to other task
+
     }
     PPOS_PREEMPT_ENABLE
 
@@ -234,7 +234,7 @@ int sem_up (semaphore_t *s) {
     s->count +=1;
 
     if (s->count <= 0){
-        task_resume(s->queue);
+        task_resume(s->queue);//remove from s->queue and insert in ready queue
     }
 
     PPOS_PREEMPT_ENABLE
