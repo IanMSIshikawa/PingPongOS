@@ -161,18 +161,6 @@ int after_sem_create (semaphore_t *s, int value) {
     return 0;
 }
 
-int test_and_set (volatile int *lock)
-{
-    int old_lock = *lock;
-    *lock = 1; //Gets lock
-    
-    return old_lock; //Returns 0 (free) or 1 (locked)
-}
-
-void release_lock(volatile int *lock)
-{
-    *lock = 0; //Releasing lock
-}
 
 int sem_destroy (semaphore_t *s) {
 
