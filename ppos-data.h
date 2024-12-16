@@ -34,6 +34,7 @@ typedef struct task_t
 // estrutura que define um mutex
 typedef struct {
     int lock;
+    task_t *owner;
 } mutex_t ;
 
 // estrutura que define um semáforo

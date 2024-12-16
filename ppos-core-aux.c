@@ -168,30 +168,45 @@ int mutex_create (mutex_t *m)
         return -1; //Failed
     
     m->lock = 0;
+    m->owner = NULL;
     return 0;
 
 }
 
 
-int mutex_lock (mutex_t *m)
-{
+int mutex_lock(mutex_t *m) {
+    printf("enter mutex lock\n");
     if (!m)
-        return -1; //Failed
+        return -1; // Error: NULL mutex
 
-    while (__atomic_test_and_set(&(m->lock), __ATOMIC_SEQ_CST)) 
-        task_yield();
+    // Print the current state of the lock before attempting to acquire it
+    printf("Task %d attempting to acquire mutex. Lock state: %d\n", taskExec->id, m->lock);
 
-    return 0;
+    // Attempt to acquire the lock
+    while (__atomic_test_and_set(&(m->lock), __ATOMIC_SEQ_CST)) {
+        printf("Mutex lock, Task yield. Lock state: %d\n", m->lock);
+        task_yield(); // Yield CPU while waiting for the mutex
+    }
+
+    // After acquiring the lock
+    printf("Task %d acquired mutex.\n", taskExec->id);
+    m->owner = taskExec;  // Set the current task as the owner
+    printf("exit mutex lock\n");
+    return 0; // Lock successfully acquired
+}
+
+
+int mutex_unlock(mutex_t *m) {
+    printf("enter mutex unlock\n");
+    if (!m || m->owner != taskExec) 
+        return -1; // Only the owner can unlock
+
+    m->owner = NULL;
+
     
-}
-
-
-int mutex_unlock(mutex_t *m)
-{
-    if (!m)
-        return -1;
-
-    m->lock=0;
+    __atomic_clear(&(m->lock), __ATOMIC_SEQ_CST); // Unlock atomically
+    printf("Mutex unlock, Lock state: %d\n", m->lock);
+    printf("exit mutex unlock\n");
     return 0;
 }
 
@@ -200,13 +215,17 @@ int mutex_destroy(mutex_t *m)
     if (!m)
         return -1;
     
-    m->lock = -1; //marked as destroyed/inactive
+
+    m->lock = 0;
+    m->owner = NULL; 
+    m->lock =-1;
 
     return 0;
 }
 
 
 int sem_destroy (semaphore_t *s) {
+    printf("In destroy\n");
 
     if (!s || s->active == 0) {
         return -1; // null or already inactive
@@ -214,7 +233,7 @@ int sem_destroy (semaphore_t *s) {
     
     s->active = 0; //inactive
     
-    mutex_destroy(&s->mutex);
+    //mutex_destroy(&s->mutex);
 
 
     while (s->queue) //Checks if queue is Null
@@ -226,7 +245,7 @@ int sem_destroy (semaphore_t *s) {
         queue_append((queue_t **)&readyQueue, (queue_t *)wakeup);
     }
 
-    
+    printf("Out destroy\n");
 
     return 0;
 }
@@ -255,18 +274,27 @@ int sem_down (semaphore_t *s) {
     s->count -=1;
     if(s->count < 0 ){
         //Suspend running task
-        task_suspend( taskExec, &s->queue );
-
         mutex_unlock(&s->mutex);
+        task_suspend( taskExec, &s->queue );
+        
+
+        printf("Task suspended\n");
+        
+        
+        
         //Execute new task
         PPOS_PREEMPT_ENABLE
         task_yield();
         
+        
+    } else 
+    {
+        mutex_unlock(&s->mutex);
     }
     
     PPOS_PREEMPT_ENABLE
 
-    mutex_unlock(&s->mutex);
+    
 
     return 0;
 }
@@ -285,9 +313,11 @@ int sem_up (semaphore_t *s) {
         task_resume(s->queue);
     }
 
+
     PPOS_PREEMPT_ENABLE
     
     mutex_unlock(&s->mutex);
+    
     return 0;
 }
 
